@@ -1,0 +1,23 @@
+[------------- Program Options -------------]
+all of these options only accept = 'true' or 'false' 
+	 If you think you messed up the configuration file, just delete it and re-run the program 
+	 it will generate a new one with default values. 
+	 
+	 You can view my source code at 
+	 https://github.com/EthanPilz/UW-Odegaard-Paging-Automator
+
+[Cell Borders]
+borders = true
+
+[Request Notes Resizing]
+resize_requestnotes = true
+
+[Automatically print]
+print = true
+
+[Start at downloads folder for spreadsheet file select]
+downloads_start = true
+
+[Output new file to downloads folder]
+output_to_downloads = true
+

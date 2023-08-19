@@ -2,33 +2,31 @@ from openpyxl import Workbook
 from openpyxl.styles.borders import Border, Side, BORDER_THIN
 from openpyxl import load_workbook
 import pandas as pd
+from pathlib import Path
 from datetime import datetime
 import easygui
 import os
 import copy
-from Configuration import writeConfigFile, readConfigFile, getBordersOption, getRequestnotesOption
+from Configuration import writeConfigFile, readConfigFile, getBordersOption, getRequestnotesOption, getPrintOption, getInputStartOption, getOutputFolderOption
 
-def getInputFile():
-    inputPath = easygui.fileopenbox()
+def getInputFile(config):
 
-    ## Make sure file is excel
-    #if not inputFile.lower().endswith('.xlsx'):
-        #raise MemoryError("Only Excel (.xlsx) file types are accepted.")
-        #raise SystemExit
-
+    if(getInputStartOption(config)):
+        inputPath = easygui.fileopenbox(default = "~/Downloads/")
+    else:
+        inputPath = easygui.fileopenbox()
     return inputPath
 
-def getOutputPath():
-    outputPath = easygui.diropenbox(default = "~/Downloads/")
+def getOutputPath(config):
+    
+    if(getOutputFolderOption(config)):
+        outputPath = str(Path.home() / "Downloads")
+        #outputPath = "~/Downloads/"
+    else:
+        outputPath = easygui.diropenbox()
     return outputPath + '/PagingList_' + datetime.now().strftime("%Y-%m-%d %Ih%Mm %p") + '.xlsx'
 
-def formatTable(wb, titleWidth, requestWidth, locationWidth):
-
-    config = readConfigFile()
-    print("Printing the value gives:", (config.get('Cell Borders', 'borders'))) #Shows up as false (what I want, since I modified the config.ini)
-    bordersOption = getBordersOption
-    print("getBordersOption returns:", bordersOption) #Shows up as true REGARDLESS of config.ini modification
-    requestnotesOption = getRequestnotesOption()
+def formatTable(config, wb, titleWidth, requestWidth, locationWidth):
 
     ws = wb.active
 
@@ -66,19 +64,17 @@ def formatTable(wb, titleWidth, requestWidth, locationWidth):
             alignment.vertical = "top"
             cell.alignment = alignment
 
-    thin_border = Border(
-    left=Side(border_style=BORDER_THIN, color='00000000'),
-    right=Side(border_style=BORDER_THIN, color='00000000'),
-    top=Side(border_style=BORDER_THIN, color='00000000'),
-    bottom=Side(border_style=BORDER_THIN, color='00000000')
-    )
-
     ## Make columns the correct width for visual clarity
     dims = {}
     for row in ws.rows:
         for cell in row:
-            if(bordersOption):
-                cell.border = thin_border
+            if(getBordersOption(config)):
+                cell.border = Border(
+                                left=Side(border_style=BORDER_THIN, color='00000000'),
+                                right=Side(border_style=BORDER_THIN, color='00000000'),
+                                top=Side(border_style=BORDER_THIN, color='00000000'),
+                                bottom=Side(border_style=BORDER_THIN, color='00000000')
+                                )
             if cell.value:
                 dims[cell.column_letter] = max((dims.get(cell.column_letter, 0), len(str(cell.value))))
     for col, value in dims.items():
@@ -88,8 +84,9 @@ def formatTable(wb, titleWidth, requestWidth, locationWidth):
     ws.column_dimensions['B'].width = titleWidth
 
     ## Set column C (Request Notes) width if it's too large, since it makes the file unreadable
-    if (ws.column_dimensions['C'].width > 50):
-        ws.column_dimensions['C'].width = requestWidth
+    if(getRequestnotesOption(config)):
+        if (ws.column_dimensions['C'].width > 50):
+            ws.column_dimensions['C'].width = requestWidth
 
     ## Set column D (Location) width, since it wraps poorly
     ws.column_dimensions['D'].width = locationWidth
@@ -107,18 +104,23 @@ def formatTable(wb, titleWidth, requestWidth, locationWidth):
     wb.save(outputFile)
     return ws
 
+
+
 writeConfigFile()
-inputFile = getInputFile()
-outputFile = getOutputPath()
+config = readConfigFile()
+inputFile = getInputFile(config)
+outputFile = getOutputPath(config)
 
 ## Load file as xlsx
-wb = load_workbook(filename = inputFile)
-
-
+try:
+    wb = load_workbook(filename = inputFile)  # this may raise an exception
+except:
+    easygui.exceptionbox()
 
 ## Run formatTable method. 
 ## Params: formatTable(workbook, titleWidth, requestWidth, locationWidth)
-ws = formatTable(wb, 75, 20, 15)
+ws = formatTable(config, wb, 75, 20, 15)
 
 ## Print the file
-#os.startfile(outputFile, "print")
+if (getPrintOption(config)):
+    os.startfile(outputFile, "print")
